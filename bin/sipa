@@ -1,0 +1,105 @@
+#!/usr/bin/env perl
+#
+# Aware TI, 2010, http://www.aware.com.br
+# Thiago Rondon <thiago@aware.com.br>
+#
+
+=head1 NAME
+
+Sipa - Yet Another Pcap Sniffer for SIP
+
+=head2 INSTALL
+
+To make the instructions a little easier, this assume that you have
+Net::Pcap:Easy and MooseX::Getopt modules installed, but if you dont have,
+dont worry, install with cpan application.
+
+    cpan Net::Pcap::Easy
+    cpan MooseX::Getopt
+
+Than, just do that:
+
+    perl Makefile.PL
+    make
+    make install
+
+Your sipa is in your /usr/bin now.
+
+=head2 OPTIONS
+
+=head3 --port [Int]
+
+Default value: 5060
+
+=head3 --dev [Str]
+
+Default value: eth0
+
+=head3 --promiscous
+
+Default value: True
+
+=head3 --verbose
+
+Show all the packet.
+
+=head3 --out [filepath]
+
+Put output in [filepath].
+
+=head3 --codecs
+
+Show the codecs in output.
+
+=head3 --txt [string]
+
+String for match in the packets.
+
+=head3 --stats
+
+Default: False
+
+=head1 AUTHOR
+
+Thiago Rondon <thiago.rondon@gmail.com>
+
+=head1 LICENSE
+
+This library is free software. You can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
+
+use Moose;
+with 'MooseX::Traits';
+
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+
+use Sipa::Getopt;
+use Sipa::Runtime;
+
+our $sipa;
+
+sub _main {
+    my $app = Sipa::Getopt->new_with_options();
+    my @traits = ('Sipa::Role::Pcap');
+    push(@traits, 'Sipa::Role::Stats') if $app->stats;
+    $sipa = Sipa::Runtime->with_traits(@traits)->new;
+    $sipa->opt($app);
+    $sipa->get();
+}
+
+sub _sigint {
+    return 1 if !$sipa->does('Sipa::Role::Stats');
+    print "\n";
+    print "calls completed: " . $sipa->calls . "\n";
+    print "\n";
+    return 1;
+}
+
+$SIG{INT} = \&_sigint;
+
+_main;
+
+
